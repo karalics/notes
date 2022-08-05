@@ -3,6 +3,7 @@ package main
 
 import (
 	"io/ioutil"
+	"io/fs"
 	"path/filepath"
 	"fmt"
 	"log"
@@ -21,6 +22,7 @@ func main(){
 		content := ReadFileToString(filepath.Join(NOTES_PATH, todayFilename()))
 		fmt.Println(content)
 		todayFilename()
+		ParseAllFiles(NOTES_PATH)
 	}
 }
 
@@ -61,4 +63,30 @@ func ReadFileToString(path string) string {
 	s = string(b[:])
 
 	return s
+}
+
+func ListDir(path string) ([]fs.FileInfo, error) {
+
+	filesinfo, err := ioutil.ReadDir(path)
+	if err != nil {
+		log.SetPrefix("function listDir: ")
+		log.Println(err)
+	}
+
+	return filesinfo, err
+
+}
+
+func ParseAllFiles(path string) {
+
+	file_list, _ := ListDir(NOTES_PATH)
+
+	for _, i := range file_list {
+		if !(i.IsDir()) {
+
+			fmt.Println(i.Name())
+
+		}
+
+	}
 }
