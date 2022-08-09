@@ -1,29 +1,62 @@
 package main
 
-
 import (
-	"io/ioutil"
-	"io/fs"
-	"path/filepath"
 	"fmt"
+	"io/fs"
+	"io/ioutil"
 	"log"
 	"os"
+	"path/filepath"
 	"runtime"
+	"strings"
 	"time"
 )
 
 var NOTES_PATH string = userHomeDir() + "/switchdrive/Notes"
 
-func main(){
+func main() {
 	log.Println("Hello Notes")
 	log.Println(NOTES_PATH)
 
 	if len(os.Args) == 1 {
 		content := ReadFileToString(filepath.Join(NOTES_PATH, todayFilename()))
-		fmt.Println(content)
-		todayFilename()
-		ParseAllFiles(NOTES_PATH)
+		lines := readLineByLine(content)
+		printNote(lines)
+
+	} else {
+		if os.Args[1] == "todo" {
+			ParseAllFiles(NOTES_PATH, "todo", 0)
+		}
+
+		if os.Args[1] == "search" {
+			ParseAllFiles(NOTES_PATH, os.Args[2], 0)
+		}
 	}
+}
+
+func listTodos() {
+
+}
+
+func readLineByLine(s string) []string {
+	lines := strings.Split(s, "\n")
+
+	return lines
+}
+
+func printNote(as []string) {
+
+	for i, _ := range as {
+		if strings.HasPrefix(as[i], "##") {
+			fmt.Println(strings.ToUpper(as[i]))
+		} else if strings.HasPrefix(as[i], "*") {
+			fmt.Println("  " + as[i])
+		} else {
+			fmt.Println(as[i])
+		}
+
+	}
+
 }
 
 func todayFilename() string {
@@ -77,16 +110,20 @@ func ListDir(path string) ([]fs.FileInfo, error) {
 
 }
 
-func ParseAllFiles(path string) {
+func ParseAllFiles(path string, filter string, of int) {
 
 	file_list, _ := ListDir(NOTES_PATH)
 
 	for _, i := range file_list {
 		if !(i.IsDir()) {
-
-			fmt.Println(i.Name())
-
+			s := ReadFileToString(filepath.Join(NOTES_PATH, i.Name()))
+			sarr := readLineByLine(s)
+			for j, _ := range sarr {
+				if strings.Contains(sarr[j], filter) {
+					fmt.Println(i.Name() + "  " + sarr[j])
+				}
+			}
 		}
-
 	}
+
 }
