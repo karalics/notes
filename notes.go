@@ -18,11 +18,24 @@ var colorBlue string = "\033[34m"
 var colorReset string = "\033[0m"
 
 func main() {
-	log.Println("Hello Notes")
 	log.Println(NOTES_PATH)
 
+	today_filename := filepath.Join(NOTES_PATH, todayFilename())
+
+	_, file_err := os.Stat(today_filename)
+
+	if file_err != nil {
+		log.Println("File does not exist, creating a new one")
+		emptyFile, err := os.Create(today_filename)
+		if err != nil {
+			log.Fatal(err)
+		}
+		emptyFile.Close()
+	}
+
+
 	if len(os.Args) == 1 {
-		content := ReadFileToString(filepath.Join(NOTES_PATH, todayFilename()))
+		content := ReadFileToString(today_filename)
 		lines := readLineByLine(content)
 		printNote(lines)
 
@@ -34,11 +47,26 @@ func main() {
 		if os.Args[1] == "search" {
 			ParseAllFiles(NOTES_PATH, os.Args[2], 0)
 		}
+
+		if os.Args[1] == "add" {
+			appendToNote(today_filename, mergeStringArray(os.Args[2:]))
+		}
 	}
 }
 
 func listTodos() {
 
+}
+
+
+
+func mergeStringArray(sarr []string ) string {
+	var mystring string
+	for _, v := range sarr {
+		mystring = mystring + v + " " 
+	}
+
+	return mystring
 }
 
 func readLineByLine(s string) []string {
@@ -139,5 +167,20 @@ func ParseAllFiles(path string, filter string, of int) {
 			}
 		}
 	}
+
+}
+
+func appendToNote(path string, s string) {
+
+    f, err := os.OpenFile(path, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+    if err != nil {
+        log.Fatal(err)
+    }
+    if _, err := f.Write([]byte(s + "\n\n")); err != nil {
+        log.Fatal(err)
+    }
+    if err := f.Close(); err != nil {
+        log.Fatal(err)
+    }
 
 }
