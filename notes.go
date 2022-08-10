@@ -14,6 +14,9 @@ import (
 
 var NOTES_PATH string = userHomeDir() + "/switchdrive/Notes"
 
+var colorBlue string = "\033[34m"
+var colorReset string = "\033[0m"
+
 func main() {
 	log.Println("Hello Notes")
 	log.Println(NOTES_PATH)
@@ -25,7 +28,7 @@ func main() {
 
 	} else {
 		if os.Args[1] == "todo" {
-			ParseAllFiles(NOTES_PATH, "todo", 0)
+			ParseAllFiles(NOTES_PATH, "TODO", 0)
 		}
 
 		if os.Args[1] == "search" {
@@ -46,11 +49,22 @@ func readLineByLine(s string) []string {
 
 func printNote(as []string) {
 
+	//colorReset := "\033[0m"
+    colorRed := "\033[31m"
+    colorGreen := "\033[32m"
+    //colorYellow := "\033[33m"
+    //colorBlue := "\033[34m"
+    //colorPurple := "\033[35m"
+    //colorCyan := "\033[36m"
+    //colorWhite := "\033[37m"
+
 	for i, _ := range as {
 		if strings.HasPrefix(as[i], "##") {
-			fmt.Println(strings.ToUpper(as[i]))
+			fmt.Println(colorGreen, strings.ToUpper(as[i]), colorReset)
 		} else if strings.HasPrefix(as[i], "*") {
 			fmt.Println("  " + as[i])
+		} else if strings.Contains(as[i], "TODO") {
+			fmt.Println(colorRed, as[i], colorReset)
 		} else {
 			fmt.Println(as[i])
 		}
@@ -120,7 +134,7 @@ func ParseAllFiles(path string, filter string, of int) {
 			sarr := readLineByLine(s)
 			for j, _ := range sarr {
 				if strings.Contains(sarr[j], filter) {
-					fmt.Println(i.Name() + "  " + sarr[j])
+					fmt.Println(colorBlue, i.Name(), colorReset, "  ",  sarr[j])
 				}
 			}
 		}
