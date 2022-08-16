@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bufio"
 	"fmt"
 	"io/fs"
 	"io/ioutil"
@@ -8,6 +9,7 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -16,6 +18,7 @@ var NOTES_PATH string = userHomeDir() + "/switchdrive/Notes"
 
 var colorBlue string = "\033[34m"
 var colorReset string = "\033[0m"
+var colorPurple string = "\033[35m"
 
 func main() {
 	log.Println(NOTES_PATH)
@@ -32,7 +35,6 @@ func main() {
 		}
 		emptyFile.Close()
 	}
-
 
 	if len(os.Args) == 1 {
 		content := ReadFileToString(today_filename)
@@ -51,6 +53,21 @@ func main() {
 		if os.Args[1] == "add" {
 			appendToNote(today_filename, mergeStringArray(os.Args[2:]))
 		}
+
+		if os.Args[1] == "done" {
+			indexnumber, _ := strconv.Atoi(os.Args[2])
+
+			line := lineByNumber("tindex", indexnumber)
+			args := strings.Split(line, ":::")
+			filename := args[1]
+			linenumber, err := strconv.Atoi(args[2])
+			if err != nil {
+				log.Fatal(err)
+			}
+			writeDone(filename, linenumber)
+
+			ParseAllFiles(NOTES_PATH, "TODO", 0)
+		}
 	}
 }
 
@@ -58,12 +75,10 @@ func listTodos() {
 
 }
 
-
-
-func mergeStringArray(sarr []string ) string {
+func mergeStringArray(sarr []string) string {
 	var mystring string
 	for _, v := range sarr {
-		mystring = mystring + v + " " 
+		mystring = mystring + v + " "
 	}
 
 	return mystring
@@ -78,13 +93,13 @@ func readLineByLine(s string) []string {
 func printNote(as []string) {
 
 	//colorReset := "\033[0m"
-    colorRed := "\033[31m"
-    colorGreen := "\033[32m"
-    //colorYellow := "\033[33m"
-    //colorBlue := "\033[34m"
-    //colorPurple := "\033[35m"
-    //colorCyan := "\033[36m"
-    //colorWhite := "\033[37m"
+	colorRed := "\033[31m"
+	colorGreen := "\033[32m"
+	//colorYellow := "\033[33m"
+	//colorBlue := "\033[34m"
+	//colorPurple := "\033[35m"
+	//colorCyan := "\033[36m"
+	//colorWhite := "\033[37m"
 
 	for i, _ := range as {
 		if strings.HasPrefix(as[i], "##") {
@@ -99,6 +114,28 @@ func printNote(as []string) {
 
 	}
 
+}
+
+func writeDone(filename string, linenumber int) {
+
+	file := filepath.Join(NOTES_PATH, filename)
+
+	input, err := ioutil.ReadFile(file)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	lines := strings.Split(string(input), "\n")
+
+	pos := linenumber - 1
+
+	lines[pos] = strings.Replace(lines[pos], "TODO", "DONE", -1)
+
+	output := strings.Join(lines, "\n")
+	err = ioutil.WriteFile(file, []byte(output), 0644)
+	if err != nil {
+		log.Fatal(err)
+	}
 }
 
 func todayFilename() string {
@@ -152,35 +189,78 @@ func ListDir(path string) ([]fs.FileInfo, error) {
 
 }
 
+func lineByNumber(filename string, linenumber int) (line string) {
+
+	// Not Used at the moment
+
+	readFile, err := os.Open(filepath.Join(NOTES_PATH, filename))
+
+	if err != nil {
+		fmt.Println(err)
+	}
+	fileScanner := bufio.NewScanner(readFile)
+
+	fileScanner.Split(bufio.ScanLines)
+
+	fileindex := 1
+	for fileScanner.Scan() {
+		if fileindex == linenumber {
+			return fileScanner.Text()
+		}
+		fileindex++
+	}
+
+	readFile.Close()
+
+	return "No Line Found"
+}
+
 func ParseAllFiles(path string, filter string, of int) {
 
 	file_list, _ := ListDir(NOTES_PATH)
 
+	var tindex int = 1
+	_, err := os.Create(filepath.Join(NOTES_PATH, "tindex"))
+	f, err := os.OpenFile(filepath.Join(NOTES_PATH, "tindex"), os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil {
+		log.Fatal(err)
+	}
+
 	for _, i := range file_list {
-		if !(i.IsDir()) {
+		if !(i.IsDir()) && (i.Name() != "tindex") {
 			s := ReadFileToString(filepath.Join(NOTES_PATH, i.Name()))
 			sarr := readLineByLine(s)
 			for j, _ := range sarr {
+
 				if strings.Contains(sarr[j], filter) {
-					fmt.Println(colorBlue, i.Name(), colorReset, "  ",  sarr[j])
+					output := strconv.Itoa(tindex) + ":::" + i.Name() + ":::" + strconv.Itoa(j+1)
+					fmt.Println(tindex, colorBlue, i.Name(), colorReset, colorPurple, j+1, colorReset, sarr[j])
+					tindex++
+					if _, err := f.Write([]byte(output + "\n")); err != nil {
+						log.Fatal(err)
+					}
 				}
 			}
 		}
+	}
+
+	if err := f.Close(); err != nil {
+		log.Fatal(err)
 	}
 
 }
 
 func appendToNote(path string, s string) {
 
-    f, err := os.OpenFile(path, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
-    if err != nil {
-        log.Fatal(err)
-    }
-    if _, err := f.Write([]byte(s + "\n\n")); err != nil {
-        log.Fatal(err)
-    }
-    if err := f.Close(); err != nil {
-        log.Fatal(err)
-    }
+	f, err := os.OpenFile(path, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil {
+		log.Fatal(err)
+	}
+	if _, err := f.Write([]byte(s + "\n\n")); err != nil {
+		log.Fatal(err)
+	}
+	if err := f.Close(); err != nil {
+		log.Fatal(err)
+	}
 
 }
