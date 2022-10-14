@@ -8,6 +8,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"regexp"
 	"runtime"
 	"strconv"
 	"strings"
@@ -19,6 +20,7 @@ var NOTES_PATH string = userHomeDir() + "/switchdrive/Notes"
 var colorBlue string = "\033[34m"
 var colorReset string = "\033[0m"
 var colorPurple string = "\033[35m"
+var colorRed string = "\033[31m"
 
 func main() {
 	log.Println(NOTES_PATH)
@@ -226,6 +228,8 @@ func ParseAllFiles(path string, filter string, of int) {
 		log.Fatal(err)
 	}
 
+	var re = regexp.MustCompile(`\d{2}.\d{2}.\d{4}`)
+
 	for _, i := range file_list {
 		if !(i.IsDir()) && (i.Name() != "tindex") {
 			s := ReadFileToString(filepath.Join(NOTES_PATH, i.Name()))
@@ -234,7 +238,11 @@ func ParseAllFiles(path string, filter string, of int) {
 
 				if strings.Contains(sarr[j], filter) {
 					output := strconv.Itoa(tindex) + ":::" + i.Name() + ":::" + strconv.Itoa(j+1)
-					fmt.Println(tindex, colorBlue, i.Name(), colorReset, colorPurple, j+1, colorReset, sarr[j])
+					if re.MatchString(sarr[j]) {
+						fmt.Println(tindex, colorBlue, i.Name(), colorReset, colorPurple, j+1, colorReset, colorRed, sarr[j], colorReset)
+					} else {
+						fmt.Println(tindex, colorBlue, i.Name(), colorReset, colorPurple, j+1, colorReset, sarr[j])
+					}
 					tindex++
 					if _, err := f.Write([]byte(output + "\n")); err != nil {
 						log.Fatal(err)
